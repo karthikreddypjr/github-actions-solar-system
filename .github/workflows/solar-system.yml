@@ -55,4 +55,26 @@ jobs:
            name: Code-Coverage-Result
            path: coverage
            retention-days: 5
-          
+    dev-deploy:
+      environment: development
+      needs: docker
+      runs-on: ubuntu-latest
+      steps:
+        - name: Install Kubernetes
+          uses: helm/kind-action@v1
+          with:
+            registry: true
+        - name: Execute kubernetes commands
+          run: |
+            sleep 60
+            kubectl -n kube-system get pod
+            set +e
+            REPO_OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+            kubectl run solar --image ghcr.io/${REPO_OWNER_LC}/solar-system:${{ github.sha }} \
+            --env MONGO_URI=${{ env.MONGO_URI}} \
+            --env MONGO_USERNAME=${{ env.MONGO_USERNAME}} \
+            --env MONGO_PASSWORD=${{ env.MONGO_PASSWORD}}
+              set -e
+              echo "kubectl returned $?"
+              kubectl -n default get pod
+              sleep 10
